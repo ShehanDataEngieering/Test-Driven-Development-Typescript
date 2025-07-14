@@ -1,0 +1,76 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Tests (TDD)",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"test"
+			],
+			"group": "test",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Watch Tests (TDD)",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"test:watch"
+			],
+			"group": "test",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Test Coverage",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"test:coverage"
+			],
+			"group": "test",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Integration Tests",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"test:integration"
+			],
+			"group": "test",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "All Tests",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"test:all"
+			],
+			"group": "test",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Build TypeScript",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": ["$tsc"]
+		}
+	]
+}

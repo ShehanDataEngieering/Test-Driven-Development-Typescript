@@ -1,5 +1,5 @@
-import { UserRepositoryPostgres } from '../../../src/repositories/UserRepositoryPostgres';
-import { DatabaseConnection } from '../../../src/database/DatabaseConnection';
+import { UserRepositoryPostgres } from '../../../src/database/repositories/UserRepositoryPostgres';
+import { DatabaseConnection } from '../../../src/database';
 import { CreateUserInput, UpdateUserInput } from '../../../src/types/User';
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 

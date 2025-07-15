@@ -2,7 +2,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
+  roots: ['<rootDir>/tests/integration'],
   testMatch: ['**/*.integration.test.ts'],
   transform: {
     '^.+\\.ts$': 'ts-jest',
@@ -16,6 +16,6 @@ module.exports = {
   coverageDirectory: 'coverage-integration',
   coverageReporters: ['text', 'lcov', 'html'],
   testTimeout: 60000, // 60 seconds for container startup and database operations
-  setupFilesAfterEnv: ['<rootDir>/src/test-setup/integration.setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup/integration.setup.ts'],
   maxWorkers: 1, // Run integration tests sequentially to avoid container conflicts
 };

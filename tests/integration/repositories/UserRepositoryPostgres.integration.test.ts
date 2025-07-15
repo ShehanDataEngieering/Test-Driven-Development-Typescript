@@ -1,6 +1,6 @@
-import { UserRepositoryPostgres } from '../repositories/UserRepositoryPostgres';
-import { DatabaseConnection } from '../database/DatabaseConnection';
-import { CreateUserInput, UpdateUserInput } from '../types/User';
+import { UserRepositoryPostgres } from '../../../src/repositories/UserRepositoryPostgres';
+import { DatabaseConnection } from '../../../src/database/DatabaseConnection';
+import { CreateUserInput, UpdateUserInput } from '../../../src/types/User';
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 
 describe('UserRepository Integration Tests (PostgreSQL with Testcontainers)', () => {

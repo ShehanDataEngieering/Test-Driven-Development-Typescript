@@ -133,14 +133,59 @@ If you prefer to use your existing PostgreSQL:
 ## Project Structure
 
 ```
-src/
-├── types/
-│   └── User.ts              # User interfaces and types
-├── repositories/
-│   ├── UserRepository.ts    # Implementation (currently empty)
-│   └── UserRepository.test.ts # TDD tests (written first)
-└── index.ts                 # Entry point
+├── src/                             # Source code (production)
+│   ├── types/
+│   │   └── User.ts                  # User interfaces and types
+│   ├── repositories/
+│   │   ├── UserRepository.ts        # In-memory implementation
+│   │   └── UserRepositoryPostgres.ts # PostgreSQL implementation
+│   ├── database/
+│   │   └── DatabaseConnection.ts    # Database connection utilities
+│   └── index.ts                     # Entry point
+├── tests/                           # All test files (separate from source)
+│   ├── unit/                        # Unit tests (fast, isolated)
+│   │   └── repositories/
+│   │       └── UserRepository.test.ts
+│   ├── integration/                 # Integration tests (with real database)
+│   │   └── repositories/
+│   │       └── UserRepositoryPostgres.integration.test.ts
+│   ├── e2e/                         # End-to-end tests (full application)
+│   ├── fixtures/                    # Test data and factories
+│   │   └── UserTestData.ts
+│   ├── mocks/                       # Mock implementations
+│   │   └── MockUserRepository.ts
+│   ├── setup/                       # Test configuration
+│   │   └── integration.setup.ts
+│   └── README.md                    # Testing documentation
+├── docker-compose.yml               # Database containers
+├── jest.config.js                   # Unit test configuration
+├── jest.integration.config.js       # Integration test configuration
+└── package.json                     # Dependencies and scripts
 ```
+
+## Benefits of Improved Structure
+
+### ✅ **Clear Separation of Concerns**
+- **Source code** (`src/`) contains only production code
+- **Tests** (`tests/`) are completely separate and organized by type
+- **No test files mixed** with production code
+
+### ✅ **Better Organization**
+- **Unit tests**: Fast, isolated tests for business logic
+- **Integration tests**: Tests with real databases
+- **E2E tests**: Complete application workflow tests
+- **Fixtures**: Reusable test data
+- **Mocks**: Test doubles for dependencies
+
+### ✅ **Scalability**
+- Easy to find and manage tests as project grows
+- Clear naming conventions (`*.test.ts`, `*.integration.test.ts`)
+- Separate test configurations for different test types
+
+### ✅ **Team Collaboration**
+- New developers can quickly understand test structure
+- Clear documentation in `tests/README.md`
+- Consistent patterns across the project
 
 ## Next Steps
 

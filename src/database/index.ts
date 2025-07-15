@@ -10,4 +10,3 @@ export {
   pool,
 } from "./connection";
 
-export { UserRepositoryPostgres } from "../repositories/UserRepositoryPostgres";

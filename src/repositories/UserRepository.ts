@@ -1,13 +1,18 @@
-import { pool } from "../database/connection"; //  Import connection
+import { pool } from "../database/connection";
 import { User, CreateUserInput, UpdateUserInput } from "../types/User";
 import { BaseUserRepository } from "./BaseUserRepository";
+import { SQLQueryLoader } from "../database/SQLQueryLoader";
 
-export class UserRepositoryPostgres extends BaseUserRepository {
-  constructor(private db = pool) {
+export class UserRepository extends BaseUserRepository {
+  private sqlLoader: SQLQueryLoader;
+
+  constructor(private db = pool, sqlLoader?: SQLQueryLoader) {
     super();
+    this.sqlLoader = sqlLoader || new SQLQueryLoader();
   }
 
   async create(input: CreateUserInput): Promise<User> {
+    // Use inherited validation
     this.validateCreateInput(input);
 
     const existingUser = await this.findByEmail(input.email);
@@ -16,19 +21,14 @@ export class UserRepositoryPostgres extends BaseUserRepository {
     }
 
     const user: User = {
-      id: this.generateId(),
+      id: this.generateId(), // Use inherited method
       name: input.name,
       email: input.email,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
-    const query = `
-      INSERT INTO users (id, name, email, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-    `;
-
+    const query = this.sqlLoader.loadQuery('createUser');
     const values = [
       user.id,
       user.name,
@@ -42,27 +42,72 @@ export class UserRepositoryPostgres extends BaseUserRepository {
   }
 
   async findById(id: string): Promise<User | null> {
-    // TODO: Implement findById method
-    throw new Error("Method not implemented");
+    const query = this.sqlLoader.loadQuery('findUserById');
+    const result = await this.db.query(query, [id]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToUser(result.rows[0]);
   }
 
   async findAll(): Promise<User[]> {
-    // TODO: Implement findAll method
-    throw new Error("Method not implemented");
+    const query = this.sqlLoader.loadQuery('findAllUsers');
+    const result = await this.db.query(query);
+
+    return result.rows.map(row => this.mapRowToUser(row));
   }
 
   async update(id: string, input: UpdateUserInput): Promise<User | null> {
-    // TODO: Implement update method
-    throw new Error("Method not implemented");
+    // Validate input if provided
+    if (input.name !== undefined && input.name !== null) {
+      if (!input.name || input.name.trim() === "") {
+        throw new Error("Name cannot be empty");
+      }
+    }
+
+    if (input.email !== undefined && input.email !== null) {
+      if (!input.email || input.email.trim() === "") {
+        throw new Error("Email cannot be empty");
+      }
+      if (!this.isValidEmail(input.email)) {
+        throw new Error("Invalid email format");
+      }
+      
+      // Check for duplicate email (excluding current user)
+      const existingUser = await this.findByEmail(input.email);
+      if (existingUser && existingUser.id !== id) {
+        throw new Error("Email already exists");
+      }
+    }
+
+    const query = this.sqlLoader.loadQuery('updateUser');
+    const values = [
+      id,
+      input.name || null,
+      input.email || null,
+      new Date(),
+    ];
+
+    const result = await this.db.query(query, values);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToUser(result.rows[0]);
   }
 
   async delete(id: string): Promise<boolean> {
-    // TODO: Implement delete method
-    throw new Error("Method not implemented");
+    const query = this.sqlLoader.loadQuery('deleteUser');
+    const result = await this.db.query(query, [id]);
+
+    return (result.rowCount || 0) > 0;
   }
 
   private async findByEmail(email: string): Promise<User | null> {
-    const query = "SELECT * FROM users WHERE email = $1";
+    const query = this.sqlLoader.loadQuery('findUserByEmail');
     const result = await this.db.query(query, [email]);
 
     if (result.rows.length === 0) {

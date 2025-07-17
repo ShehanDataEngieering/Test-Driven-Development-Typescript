@@ -101,5 +101,19 @@ describe("UserRepository", () => {
       // Verify that the database query was not made
       expect(mockedPool.query).not.toHaveBeenCalled();
     });
+
+    it("should throw a formatted error if the database query fails", async () => {
+      // Arrange: Simulate a database error
+      const dbError = new Error("Connection timeout");
+      mockedPool.query.mockImplementation(() => Promise.reject(dbError));
+
+      // Act & Assert: Check that the custom error is thrown
+      await expect(userRepository.create(mockCreateInput)).rejects.toThrow(
+        "Failed to create user: Connection timeout"
+      );
+    });
+
+
+    
   });
 });

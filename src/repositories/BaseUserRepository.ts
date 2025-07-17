@@ -7,7 +7,7 @@ export abstract class BaseUserRepository {
   abstract update(id: string, input: UpdateUserInput): Promise<User | null>;
   abstract delete(id: string): Promise<boolean>;
 
-  protected validateCreateInput(input: CreateUserInput): void {
+  public validateCreateInput(input: CreateUserInput): void {
     if (!input.name || input.name.trim() === "") {
       throw new Error("Name cannot be empty");
     }
@@ -21,12 +21,12 @@ export abstract class BaseUserRepository {
     }
   }
 
-  protected isValidEmail(email: string): boolean {
+  public isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
 
-  protected generateId(): string {
+  public generateId(): string {
     return Date.now().toString() + Math.random().toString(36).substr(2, 9);
   }
 }

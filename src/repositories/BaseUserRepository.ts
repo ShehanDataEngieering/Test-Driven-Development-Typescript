@@ -2,10 +2,13 @@ import { User, CreateUserInput, UpdateUserInput } from "../types/User";
 
 export abstract class BaseUserRepository {
   abstract create(input: CreateUserInput): Promise<User>;
-  abstract findById(id: string): Promise<User | null>;
+  abstract findById(id: string): Promise<User>;
   abstract findAll(): Promise<User[]>;
-  abstract update(id: string, input: UpdateUserInput): Promise<User | null>;
+  abstract update(id: string, input: UpdateUserInput): Promise<User>;
   abstract delete(id: string): Promise<boolean>;
+
+  // This is kept as nullable specifically because it's used for checking existence
+  abstract findByEmail(email: string): Promise<User | null>;
 
   public validateCreateInput(input: CreateUserInput | UpdateUserInput): void {
     if (!input.name || input.name.trim() === "") {
@@ -64,5 +67,33 @@ export abstract class BaseUserRepository {
     throw new Error(
       `${operation}: ${error instanceof Error ? error.message : String(error)}`
     );
+  }
+
+  /**
+   * Helper for "not found" errors - preserves the original error if it contains "not found"
+   * @param operation The operation description
+   * @param error The caught error
+   */
+  protected handleNotFoundError(operation: string, error: unknown): never {
+    this.handleDbError(operation, error, (err) => {
+      if (err.message.includes("not found")) {
+        return err;
+      }
+      this.handleDbError(operation, err);
+    });
+  }
+
+  /**
+   * Helper for validating required parameters
+   * @param value The value to check
+   * @param name Parameter name for the error message
+   */
+  protected validateRequired(
+    value: string | undefined | null,
+    name: string
+  ): void {
+    if (!value) {
+      throw new Error(`${name} is required`);
+    }
   }
 }

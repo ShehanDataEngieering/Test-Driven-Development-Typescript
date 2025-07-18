@@ -1,6 +1,8 @@
 import { UserRepository } from "../../../src/repositories/UserRepository";
 import { CreateUserInput, User } from "../../../src/types/User";
 import { pool } from "../../../src/database/connection";
+
+// Mock the database connection
 jest.mock("../../../src/database/connection", () => {
   return {
     pool: {
@@ -62,7 +64,7 @@ describe("UserRepository", () => {
       }));
 
       // Use mockImplementation to simulate a successful database query
-      mockedPool.query.mockImplementation(() =>
+      mockedPool.query.mockImplementation(() => 
         Promise.resolve({
           rows: [mockDbRow],
           rowCount: 1,
@@ -100,7 +102,7 @@ describe("UserRepository", () => {
 
     it("should throw an error if the email already exists", async () => {
       // Arrange: Override the default mock for this specific test
-      (userRepository as any).findByEmail.mockResolvedValue(mockDbRow);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       // Act & Assert: Expect the create method to reject with a specific error
       await expect(userRepository.create(mockCreateInput)).rejects.toThrow(

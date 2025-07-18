@@ -11,24 +11,33 @@ jest.mock("../../../src/database/connection", () => {
 
 const mockedPool = pool as jest.Mocked<typeof pool>;
 
+// Common test fixtures shared across tests
+const mockId = "test-uuid";
+const mockDate = new Date("2023-01-01T00:00:00.000Z");
+const mockCreateInput: CreateUserInput = {
+  name: "Test User",
+  email: "test@example.com",
+};
+
+const mockDbRow = {
+  id: mockId,
+  name: "Test User",
+  email: "test@example.com",
+  created_at: mockDate.toISOString(),
+  updated_at: mockDate.toISOString(),
+};
+
+const mockUser = {
+  id: mockId,
+  name: "Test User",
+  email: "test@example.com",
+  createdAt: mockDate,
+  updatedAt: mockDate,
+};
+
 describe("UserRepository", () => {
   describe("create", () => {
     let userRepository: UserRepository;
-
-    const mockId = "test-uuid";
-    const mockDate = new Date("2023-01-01T00:00:00.000Z");
-    const mockCreateInput: CreateUserInput = {
-      name: "Test User",
-      email: "test@example.com",
-    };
-
-    const mockDbRow = {
-      id: mockId,
-      name: "Test User",
-      email: "test@example.com",
-      created_at: mockDate.toISOString(),
-      updated_at: mockDate.toISOString(),
-    };
 
     // beforeEach runs before each test in this block
     beforeEach(() => {
@@ -112,8 +121,86 @@ describe("UserRepository", () => {
         "Failed to create user: Connection timeout"
       );
     });
+  });
 
+  describe("findById", () => {
+    let userRepository: UserRepository;
 
-    
+    beforeEach(() => {
+      jest.clearAllMocks();
+      jest.useFakeTimers().setSystemTime(mockDate);
+
+      userRepository = new UserRepository(mockedPool);
+
+      // Mock repository methods
+      jest.spyOn(userRepository, "mapRowToUser").mockImplementation((row) => ({
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+      }));
+
+      // Default successful query response
+      mockedPool.query.mockImplementation(() => 
+        Promise.resolve({
+          rows: [mockDbRow],
+          rowCount: 1
+        })
+      );
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("should return a user when found", async () => {
+      // Act: Call the method being tested
+      const result = await userRepository.findById(mockId);
+
+      // Assert: Verify correct query execution and result
+      expect(mockedPool.query).toHaveBeenCalledWith(
+        expect.any(String),
+        [mockId]
+      );
+      expect(userRepository.mapRowToUser).toHaveBeenCalledWith(mockDbRow);
+      expect(result).toEqual(mockUser);
+    });
+
+    it("should throw an error when user is not found", async () => {
+      // Arrange: Simulate no rows returned
+      mockedPool.query.mockImplementation(() => 
+        Promise.resolve({
+          rows: [],
+          rowCount: 0
+        })
+      );
+
+      // Act & Assert: Verify the specific error is thrown
+      await expect(userRepository.findById(mockId))
+        .rejects
+        .toThrow(`User with id ${mockId} not found`);
+    });
+
+    it("should throw an error when id is not provided", async () => {
+      // Act & Assert: Check that input validation works
+      await expect(userRepository.findById(""))
+        .rejects
+        .toThrow("User ID is required");
+        
+      // The database should not be queried
+      expect(mockedPool.query).not.toHaveBeenCalled();
+    });
+
+    it("should throw a formatted error when database query fails", async () => {
+      // Arrange: Simulate database failure
+      const dbError = new Error("Database connection error");
+      mockedPool.query.mockImplementation(() => Promise.reject(dbError));
+
+      // Act & Assert: Verify error is properly formatted
+      await expect(userRepository.findById(mockId))
+        .rejects
+        .toThrow("Failed to find user: Database connection error");
+    });
   });
 });

@@ -36,13 +36,13 @@ export class UserRepository extends BaseUserRepository {
       user.createdAt,
       user.updatedAt,
     ];
-    
+
     try {
       const result = await this.db.query(query, values);
       return this.mapRowToUser(result.rows[0]);
     } catch (error) {
-      // Use centralized error handling
-      this.handleDbError("Failed to create user", error);
+      // Use centralized error handling - this will always throw
+      return this.handleDbError("Failed to create user", error);
     }
   }
 
@@ -58,8 +58,8 @@ export class UserRepository extends BaseUserRepository {
       }
       return this.mapRowToUser(result.rows[0]);
     } catch (error) {
-      // Use specialized handler for not found errors
-      this.handleNotFoundError("Failed to find user", error);
+      // Use specialized handler for not found errors - this will always throw
+      return this.handleNotFoundError("Failed to find user", error);
     }
   }
 
@@ -70,37 +70,19 @@ export class UserRepository extends BaseUserRepository {
       const result = await this.db.query(query);
       return result.rows.map((row) => this.mapRowToUser(row));
     } catch (error) {
-      // Use centralized error handling
-      this.handleDbError("Failed to find all users", error);
+      // Use centralized error handling - this will always throw
+      return this.handleDbError("Failed to find all users", error);
     }
   }
 
-  /**
-   * Validates fields only if they are provided in the input
-   * @param field The field value to check
-   * @param fieldName Name of the field for error messages
-   * @param validator Optional custom validation function
-   */
-  private validateOptionalField(field: string | undefined | null, fieldName: string, validator?: (value: string) => boolean): void {
-    // Only validate if the field was provided (not undefined/null)
-    if (field !== undefined && field !== null) {
-      if (!field || field.trim() === "") {
-        throw new Error(`${fieldName} cannot be empty`);
-      }
-      
-      // Run optional custom validator if provided
-      if (validator && !validator(field)) {
-        throw new Error(`Invalid ${fieldName.toLowerCase()} format`);
-      }
-    }
-  }
-  
   async update(id: string, input: UpdateUserInput): Promise<User> {
     this.validateRequired(id, "User ID");
-    
+
     // Validate optional fields if provided
     this.validateOptionalField(input.name, "Name");
-    this.validateOptionalField(input.email, "Email", (email) => this.isValidEmail(email));
+    this.validateOptionalField(input.email, "Email", (email) =>
+      this.isValidEmail(email)
+    );
 
     // Check for duplicate email (excluding current user)
     if (input.email !== undefined && input.email !== null) {
@@ -122,8 +104,8 @@ export class UserRepository extends BaseUserRepository {
 
       return this.mapRowToUser(result.rows[0]);
     } catch (error) {
-      // Use specialized handler for not found errors
-      this.handleNotFoundError("Failed to update user", error);
+      // Use specialized handler for not found errors - this will always throw
+      return this.handleNotFoundError("Failed to update user", error);
     }
   }
 
@@ -136,8 +118,8 @@ export class UserRepository extends BaseUserRepository {
       const result = await this.db.query(query, [id]);
       return (result.rowCount || 0) > 0;
     } catch (error) {
-      // Use centralized error handling
-      this.handleDbError("Failed to delete user", error);
+      // Use centralized error handling - this will always throw
+      return this.handleDbError("Failed to delete user", error);
     }
   }
 
@@ -157,8 +139,8 @@ export class UserRepository extends BaseUserRepository {
 
       return this.mapRowToUser(result.rows[0]);
     } catch (error) {
-      // Use centralized error handling
-      this.handleDbError("Failed to find user by email", error);
+      // Use centralized error handling - this will always throw
+      return this.handleDbError("Failed to find user by email", error);
     }
   }
 }

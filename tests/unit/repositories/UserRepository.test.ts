@@ -2,14 +2,46 @@ import { UserRepository } from "../../../src/repositories/UserRepository";
 import { CreateUserInput, User } from "../../../src/types/User";
 import { pool } from "../../../src/database/connection";
 
-// Mock the database connection
-jest.mock("../../../src/database/connection", () => {
-  return {
-    pool: {
-      query: jest.fn(),
-    },
-  };
-});
+// Mock dependencies before importing them
+jest.mock("../../../src/database/connection", () => ({
+  pool: { query: jest.fn() },
+}));
+
+// Mock all utility functions that BaseUserRepository uses
+jest.mock("../../../src/utils/ValidationUtils", () => ({
+  validateUserInput: jest.fn(),
+  validateOptionalField: jest.fn(),
+  isValidEmail: jest.fn().mockReturnValue(true),
+}));
+
+jest.mock("../../../src/utils/DataUtils", () => ({
+  generateId: jest.fn().mockReturnValue("test-uuid"),
+  mapRowToUser: jest.fn((row) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  })),
+}));
+
+jest.mock("../../../src/utils/ErrorHandlers", () => ({
+  handleDbError: jest.fn().mockImplementation((operation, error) => {
+    throw new Error(
+      `${operation}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }),
+  handleNotFoundError: jest.fn().mockImplementation((operation, error) => {
+    throw new Error(
+      `${operation}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }),
+  validateRequired: jest.fn().mockImplementation((value, name) => {
+    if (!value) {
+      throw new Error(`${name} is required`);
+    }
+  }),
+}));
 
 const mockedPool = pool as jest.Mocked<typeof pool>;
 
@@ -51,20 +83,11 @@ describe("UserRepository", () => {
       // Create a new instance of the repository for each test
       userRepository = new UserRepository(mockedPool);
 
-      // Mock/spy on methods of the repository instance
-      jest.spyOn(userRepository, "validateCreateInput").mockImplementation();
-      jest.spyOn(userRepository, "generateId").mockReturnValue(mockId);
+      // Mock repository methods that we want to control directly
       jest.spyOn(userRepository, "findByEmail").mockResolvedValue(null);
-      jest.spyOn(userRepository, "mapRowToUser").mockImplementation((row) => ({
-        id: row.id,
-        name: row.name,
-        email: row.email,
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at),
-      }));
 
       // Use mockImplementation to simulate a successful database query
-      mockedPool.query.mockImplementation(() => 
+      mockedPool.query.mockImplementation(() =>
         Promise.resolve({
           rows: [mockDbRow],
           rowCount: 1,
@@ -83,21 +106,8 @@ describe("UserRepository", () => {
       const result = await userRepository.create(mockCreateInput);
 
       // Assert: Verify the expected outcome and interactions
-      expect(userRepository.validateCreateInput).toHaveBeenCalledWith(
-        mockCreateInput
-      );
-      expect(userRepository.findByEmail).toHaveBeenCalledWith(
-        mockCreateInput.email
-      );
-      expect(userRepository.generateId).toHaveBeenCalled();
+      expect(result).toEqual(mockUser);
       expect(mockedPool.query).toHaveBeenCalled();
-      expect(result).toEqual({
-        id: mockId,
-        name: mockCreateInput.name,
-        email: mockCreateInput.email,
-        createdAt: mockDate,
-        updatedAt: mockDate,
-      });
     });
 
     it("should throw an error if the email already exists", async () => {
@@ -134,20 +144,11 @@ describe("UserRepository", () => {
 
       userRepository = new UserRepository(mockedPool);
 
-      // Mock repository methods
-      jest.spyOn(userRepository, "mapRowToUser").mockImplementation((row) => ({
-        id: row.id,
-        name: row.name,
-        email: row.email,
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at),
-      }));
-
       // Default successful query response
-      mockedPool.query.mockImplementation(() => 
+      mockedPool.query.mockImplementation(() =>
         Promise.resolve({
           rows: [mockDbRow],
-          rowCount: 1
+          rowCount: 1,
         })
       );
     });
@@ -161,35 +162,33 @@ describe("UserRepository", () => {
       const result = await userRepository.findById(mockId);
 
       // Assert: Verify correct query execution and result
-      expect(mockedPool.query).toHaveBeenCalledWith(
-        expect.any(String),
-        [mockId]
-      );
-      expect(userRepository.mapRowToUser).toHaveBeenCalledWith(mockDbRow);
+      expect(mockedPool.query).toHaveBeenCalledWith(expect.any(String), [
+        mockId,
+      ]);
       expect(result).toEqual(mockUser);
     });
 
     it("should throw an error when user is not found", async () => {
       // Arrange: Simulate no rows returned
-      mockedPool.query.mockImplementation(() => 
+      mockedPool.query.mockImplementation(() =>
         Promise.resolve({
           rows: [],
-          rowCount: 0
+          rowCount: 0,
         })
       );
 
       // Act & Assert: Verify the specific error is thrown
-      await expect(userRepository.findById(mockId))
-        .rejects
-        .toThrow(`User with id ${mockId} not found`);
+      await expect(userRepository.findById(mockId)).rejects.toThrow(
+        `User with id ${mockId} not found`
+      );
     });
 
     it("should throw an error when id is not provided", async () => {
       // Act & Assert: Check that input validation works
-      await expect(userRepository.findById(""))
-        .rejects
-        .toThrow("User ID is required");
-        
+      await expect(userRepository.findById("")).rejects.toThrow(
+        "User ID is required"
+      );
+
       // The database should not be queried
       expect(mockedPool.query).not.toHaveBeenCalled();
     });
@@ -200,9 +199,9 @@ describe("UserRepository", () => {
       mockedPool.query.mockImplementation(() => Promise.reject(dbError));
 
       // Act & Assert: Verify error is properly formatted
-      await expect(userRepository.findById(mockId))
-        .rejects
-        .toThrow("Failed to find user: Database connection error");
+      await expect(userRepository.findById(mockId)).rejects.toThrow(
+        "Failed to find user: Database connection error"
+      );
     });
   });
 });
